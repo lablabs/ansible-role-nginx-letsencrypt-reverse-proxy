@@ -1,0 +1,22 @@
+server {
+  listen 80;
+  listen [::]:80;
+
+  server_name {{ nginx_reverse_proxy.server_name }};
+
+  return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl;
+
+    server_name {{ nginx_reverse_proxy.server_name }}
+
+    ssl on;
+    ssl_certificate     {{ nginx_reverse_proxy_certbot_path }}/live/{{ nginx_reverse_proxy.server_name }}/fullchain.pem;
+    ssl_certificate_key {{ nginx_reverse_proxy_certbot_path }}/live/{{ nginx_reverse_proxy.server_name }}/privkey.pem;
+
+    location / {
+      proxy_pass {{ nginx_reverse_proxy.proxy_pass }};
+    }
+}

@@ -1,0 +1,52 @@
+- name: ensure pip is installed
+  become: yes
+  apt:
+    pkg:
+      - python3-pip
+      - nginx
+    state: present
+
+- name: Install route53 certbot plugin using pip
+  pip:
+    name:
+      - certbot
+      - certbot-dns-route53
+      - pyopenssl
+      - six
+      - cryptography>=2.3
+
+- name: Obtain SSL certificate
+  shell: /usr/local/bin/certbot certonly --config-dir {{ nginx_reverse_proxy_certbot_path }} --dns-route53 -d {{ nginx_reverse_proxy.server_name }} --email {{ nginx_reverse_proxy.letsecnrypt.email }} --non-interactive --agree-tos
+
+- name: Add cron entry for certificate renewal
+  cron:
+    name: Let's Encrypt certificate renewal
+    user: root
+    minute: "30"
+    hour: "3"
+    job: /usr/local/bin/certbot renew --config-dir {{ nginx_reverse_proxy_certbot_path }} --post-hook "systemctl reload nginx" >> /var/log/letsencrypt/letsencrypt-update.log 2>&1
+
+- name: start nginx
+  become: yes
+  service:
+      name: nginx
+      state: started
+
+- name: copy the nginx config file and restart nginx
+  become: yes
+  copy:
+    content: "{{ lookup('template', 'nginx.j2') }}"
+    dest: /etc/nginx/sites-available/{{ nginx_reverse_proxy.server_name }}.conf
+
+- name: create symlink
+  become: yes
+  file:
+    src: /etc/nginx/sites-available/{{ nginx_reverse_proxy.server_name }}.conf
+    dest: /etc/nginx/sites-enabled/{{ nginx_reverse_proxy.server_name }}.conf
+    state: link
+
+- name: restart nginx
+  become: yes
+  service:
+    name: nginx
+    state: restarted

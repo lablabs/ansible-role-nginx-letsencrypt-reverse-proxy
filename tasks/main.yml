@@ -17,7 +17,7 @@
 
 - name: Obtain SSL certificate
   shell: /usr/local/bin/certbot certonly --config-dir {{ nginx_reverse_proxy_certbot_path }} --dns-route53 -d {{ nginx_reverse_proxy.server_name }} --email {{ nginx_reverse_proxy.letsecnrypt.email }} --non-interactive --agree-tos
-
+  when: nginx_reverse_proxy.enable_https
 - name: Add cron entry for certificate renewal
   cron:
     name: Let's Encrypt certificate renewal
@@ -25,6 +25,7 @@
     minute: "30"
     hour: "3"
     job: /usr/local/bin/certbot renew --config-dir {{ nginx_reverse_proxy_certbot_path }} --post-hook "systemctl reload nginx" >> /var/log/letsencrypt/letsencrypt-update.log 2>&1
+  when: nginx_reverse_proxy.enable_https
 
 - name: start nginx
   become: yes

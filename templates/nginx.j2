@@ -4,9 +4,16 @@ server {
 
   server_name {{ nginx_reverse_proxy.server_name }};
 
+  {% if nginx_reverse_proxy.enable_https %}
   return 301 https://$host$request_uri;
+  {% else %}
+  location / {
+      proxy_pass {{ nginx_reverse_proxy.proxy_pass }};
+  }
+  {% endif %}
 }
 
+{% if nginx_reverse_proxy.enable_https %}
 server {
     listen 443 ssl;
 
@@ -20,3 +27,4 @@ server {
       proxy_pass {{ nginx_reverse_proxy.proxy_pass }};
     }
 }
+{% endif %}
